@@ -8,6 +8,16 @@ export type Color =
   | 'Cyan'
   | 'Grey';
 
+const PieceColors: Color[] = [
+  'Red',
+  'Green',
+  'Blue',
+  'Yellow',
+  'Orange',
+  'Magenta',
+  'Cyan',
+] as const;
+
 export const getColorCode = (c: Color): string => {
   // prettier-ignore
   switch (c) {
@@ -22,4 +32,8 @@ export const getColorCode = (c: Color): string => {
     default:
       throw new Error(`Unknown color ${c}`);
   }
+};
+
+export const getRandomPieceColor = () => {
+  return PieceColors[Math.floor(Math.random() * PieceColors.length)];
 };

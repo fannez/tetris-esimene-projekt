@@ -110,6 +110,7 @@ export const drawBoard = (ctx: CanvasRenderingContext2D, board: Board) => {
 
   drawBorders(ctx, board);
 
+  // Render cells
   for (const cell of board.state) {
     drawRect(
       ctx,
@@ -121,5 +122,27 @@ export const drawBoard = (ctx: CanvasRenderingContext2D, board: Board) => {
       },
       cell.color,
     );
+  }
+
+  // Render active Tetromino
+  if (board.activeTetromino) {
+    for (const piece of board.activeTetromino.pieces) {
+      const y =
+        (board.sizeY - board.activeTetromino.y + piece.y) * board.cellSize;
+
+      // Don't draw pieces outside the board
+      if (y > board.sizeY) {
+        drawRect(
+          ctx,
+          {
+            x: (board.activeTetromino.x + piece.x + 1) * board.cellSize,
+            y,
+            width: board.cellSize,
+            height: board.cellSize,
+          },
+          board.activeTetromino.color,
+        );
+      }
+    }
   }
 };
