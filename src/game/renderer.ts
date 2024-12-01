@@ -1,5 +1,6 @@
 import { Color, getColorCode } from './color';
-import { Board } from './board';
+import { Board, Cell, dropTetromino, getTetrominoCells } from './board';
+import { TetrominoInstance } from './tetromino';
 
 interface Rect {
   x: number;
@@ -8,11 +9,7 @@ interface Rect {
   height: number;
 }
 
-export const drawRect = (
-  ctx: CanvasRenderingContext2D,
-  r: Rect,
-  color: Color,
-) => {
+const drawRect = (ctx: CanvasRenderingContext2D, r: Rect, color: Color) => {
   const bevelSize = Math.min(r.width, r.height) / 10;
   const halfBevelSize = bevelSize / 2;
 
@@ -48,6 +45,38 @@ export const drawRect = (
 
   ctx.strokeStyle = '#0000004D';
   ctx.lineWidth = bevelSize;
+  ctx.stroke();
+};
+
+const drawGhostRect = (
+  ctx: CanvasRenderingContext2D,
+  r: Rect,
+  color: Color,
+) => {
+  ctx.beginPath();
+
+  // Left
+  ctx.moveTo(r.x, r.y);
+  ctx.lineTo(r.x, r.y + r.height);
+
+  // Top
+  ctx.moveTo(r.x, r.y);
+  ctx.lineTo(r.x + r.width, r.y);
+
+  // Right
+  ctx.moveTo(r.x + r.width, r.y);
+  ctx.lineTo(r.x + r.width, r.y + r.height);
+
+  // Bottom
+  ctx.moveTo(r.x, r.y + r.height);
+  ctx.lineTo(r.x + r.width, r.y + r.height);
+
+  // Diagonal
+  ctx.moveTo(r.x, r.y);
+  ctx.lineTo(r.x + r.width, r.y + r.height);
+
+  ctx.strokeStyle = getColorCode(color);
+  ctx.lineWidth = 1;
   ctx.stroke();
 };
 
@@ -105,13 +134,9 @@ const drawBorders = (ctx: CanvasRenderingContext2D, board: Board) => {
   }
 };
 
-export const drawBoard = (ctx: CanvasRenderingContext2D, board: Board) => {
-  ctx.reset();
-
-  drawBorders(ctx, board);
-
-  // Render cells
-  for (const cell of board.state) {
+const drawCell = (ctx: CanvasRenderingContext2D, cell: Cell, board: Board) => {
+  // Don't draw pieces outside the board
+  if (cell.y < board.sizeY) {
     drawRect(
       ctx,
       {
@@ -123,26 +148,70 @@ export const drawBoard = (ctx: CanvasRenderingContext2D, board: Board) => {
       cell.color,
     );
   }
+};
+
+const drawGhostCell = (
+  ctx: CanvasRenderingContext2D,
+  cell: Cell,
+  board: Board,
+) => {
+  // Don't draw pieces outside the board
+  if (cell.y < board.sizeY) {
+    drawGhostRect(
+      ctx,
+      {
+        x: (cell.x + 1) * board.cellSize,
+        y: (board.sizeY - cell.y) * board.cellSize,
+        width: board.cellSize,
+        height: board.cellSize,
+      },
+      cell.color,
+    );
+  }
+};
+
+const drawOrigin = (
+  ctx: CanvasRenderingContext2D,
+  board: Board,
+  t: TetrominoInstance,
+) => {
+  ctx.beginPath();
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.rect(
+    (t.x + 1 + t.origin.x + 0.5) * board.cellSize - 5,
+    (board.sizeY - t.y + t.origin.y + 0.5) * board.cellSize - 5,
+    10,
+    10,
+  );
+  ctx.stroke();
+};
+
+export const drawBoard = (ctx: CanvasRenderingContext2D, board: Board) => {
+  ctx.reset();
+
+  drawBorders(ctx, board);
+
+  // Render cells
+  for (const cell of board.state) {
+    drawCell(ctx, cell, board);
+  }
 
   // Render active Tetromino
   if (board.activeTetromino) {
-    for (const piece of board.activeTetromino.pieces) {
-      const y =
-        (board.sizeY - board.activeTetromino.y + piece.y) * board.cellSize;
+    for (const cell of getTetrominoCells(board.activeTetromino)) {
+      drawCell(ctx, cell, board);
+    }
 
-      // Don't draw pieces outside the board
-      if (y > board.sizeY) {
-        drawRect(
-          ctx,
-          {
-            x: (board.activeTetromino.x + piece.x + 1) * board.cellSize,
-            y,
-            width: board.cellSize,
-            height: board.cellSize,
-          },
-          board.activeTetromino.color,
-        );
-      }
+    // Draw origin
+    if (board.drawDebugInfo) {
+      drawOrigin(ctx, board, board.activeTetromino);
+    }
+
+    // Render active tetromino ghost
+    for (const cell of getTetrominoCells(
+      dropTetromino(board, board.activeTetromino),
+    )) {
+      drawGhostCell(ctx, cell, board);
     }
   }
 };

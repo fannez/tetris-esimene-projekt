@@ -3,16 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tetris</title>
   </head>
   <body>
     <div id="app">
-      <h1>Tetris</h1>
-      <canvas id="gameCanvas"></canvas>
+      <h1 class="press-start-2p-regular">Tetris</h1>
+
+      <div style="display: flex; flex-direction: row; gap: 1rem">
+        <div>
+          <canvas id="gameCanvas"></canvas>
+        </div>
+        <div>
+          <div style="height: 100%; display: flex; align-items: end">
+            <div>
+              <div style="text-align: left">
+                <h2 class="press-start-2p-regular">Lines</h2>
+                <div style="display: flex; justify-content: end">
+                  <span id="txt-lines" class="press-start-2p-regular">0</span>
+                </div>
+              </div>
+              <div style="text-align: left">
+                <h2 class="press-start-2p-regular">Time</h2>
+                <div style="display: flex; justify-content: end">
+                  <span id="txt-time" class="press-start-2p-regular">0:00</span>
+                </div>
+              </div>
+              <div style="text-align: left">
+                <h2 class="press-start-2p-regular">Score</h2>
+                <div style="display: flex; justify-content: end">
+                  <span id="txt-score" class="press-start-2p-regular">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div>
-        <button id="resetBtn">START</button>
+        <button id="resetBtn" class="press-start-2p-regular">START</button>
       </div>
     </div>
 

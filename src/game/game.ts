@@ -1,6 +1,18 @@
+import moment from 'moment';
+
 import { drawBoard } from './renderer';
-import { Board } from './board';
-import { getRandomTetromino, TetrominoInstance } from './tetromino';
+import {
+  Board,
+  clearFullRows,
+  dropTetromino,
+  getTetrominoCells,
+  isTetrominoColliding,
+} from './board';
+import {
+  getRandomTetromino,
+  TetrominoDirection,
+  TetrominoInstance,
+} from './tetromino';
 import { getRandomPieceColor } from './color';
 
 const defaultBoard: Board = {
@@ -10,68 +22,93 @@ const defaultBoard: Board = {
 
   activeTetromino: undefined,
   state: [],
+  linesCleared: 0,
+  score: 0,
+  gameOver: false,
+
+  drawDebugInfo: false,
 } as const;
 
-let gameInterval: number;
-
-const isColliding = (board: Board, t: TetrominoInstance): Boolean => {
-  for (const piece of t.pieces) {
-    const x = t.x + piece.x;
-    const y = t.y - piece.y;
-
-    if (
-      x < 0 ||
-      x > board.sizeX - 1 ||
-      y < 0 ||
-      board.state.findIndex((cell) => cell.x === x && cell.y === y) !== -1
-    ) {
-      return true;
-    }
-  }
-
-  return false;
-};
+let gameIntervalId: number;
+let timerIntervalId: number;
 
 const getNewTetromino = (board: Board): TetrominoInstance => {
+  const t = getRandomTetromino();
   return {
-    ...getRandomTetromino(),
-    x: Math.floor(board.sizeX / 2 - 1), // TODO: Fix this later
+    ...t,
+    x: Math.floor(board.sizeX / 2 - t.origin.x),
     y: board.sizeY,
     color: getRandomPieceColor(),
   };
 };
 
-export const gameStart = (ctx: CanvasRenderingContext2D) => {
+const getScoreForClearedRows = (clearedRows: number) => {
+  // prettier-ignore
+  switch (clearedRows) {
+    case 0: return 0;
+    case 1: return 100;
+    case 2: return 300;
+    case 3: return 500;
+    case 4: return 800;
+  }
+
+  throw new Error('Internal software error');
+};
+
+export const gameStart = (
+  ctx: CanvasRenderingContext2D,
+  linesTxt: HTMLSpanElement,
+  timeTxt: HTMLSpanElement,
+  scoreTxt: HTMLSpanElement,
+) => {
   /*const soundTrack = new Audio(
       'https://ia802905.us.archive.org/11/items/TetrisThemeMusic/Tetris.mp3?cnt=0',
     );
     soundTrack.volume = 0.05;
     soundTrack.play();*/
 
-  const board: Board = { ...defaultBoard };
-  const gameSpeed = 100;
+  const gameStartTime = moment();
+
+  const board: Board = structuredClone(defaultBoard);
+  const gameSpeed = 500;
 
   drawBoard(ctx, board);
+
+  const gameOver = () => {
+    console.log('Game over');
+    window.clearInterval(gameIntervalId);
+    window.clearInterval(timerIntervalId);
+  };
+
+  const updateScoreUI = () => {
+    linesTxt.innerHTML = board.linesCleared.toString();
+    scoreTxt.innerHTML = board.score.toString();
+  };
 
   const gameTick = () => {
     if (board.activeTetromino) {
       if (
-        isColliding(board, {
+        isTetrominoColliding(board, {
           ...board.activeTetromino,
           y: board.activeTetromino.y - 1,
         })
       ) {
-        for (const piece of board.activeTetromino.pieces) {
-          // Don't draw pieces outside the board
-          if (board.activeTetromino.y - piece.y < board.sizeY) {
-            board.state.push({
-              x: board.activeTetromino.x + piece.x,
-              y: board.activeTetromino.y - piece.y,
-              color: board.activeTetromino.color,
-            });
+        // Check for game over
+        const cells = getTetrominoCells(board.activeTetromino);
+        for (const cell of cells) {
+          if (cell.y >= board.sizeY) {
+            board.gameOver = true;
+            gameOver();
+            break;
           }
         }
+
+        board.state.push(...cells);
         board.activeTetromino = undefined;
+        const clearedRows = clearFullRows(board);
+        board.linesCleared += clearedRows;
+        board.score += getScoreForClearedRows(clearedRows);
+        updateScoreUI();
       } else {
         board.activeTetromino.y -= 1;
       }
@@ -82,39 +119,90 @@ export const gameStart = (ctx: CanvasRenderingContext2D) => {
     drawBoard(ctx, board);
   };
 
+  /**
+   * Controls
+   * ArrowLeft - Move Left
+   * ArrowLeft - Move right
+   * ArrowUp - Rotate clockwise
+   * ArrowDown - Move down i position
+   * Space - Drop the tetromino to the floor
+   */
   const onInput = (e: KeyboardEvent) => {
-    if (board.activeTetromino) {
-      if (e.key === 'ArrowLeft') {
-        if (
-          !isColliding(board, {
-            ...board.activeTetromino,
-            x: board.activeTetromino.x - 1,
-          })
-        ) {
-          board.activeTetromino.x -= 1;
-        }
-      } else if (e.key === 'ArrowRight') {
-        if (
-          !isColliding(board, {
-            ...board.activeTetromino,
-            x: board.activeTetromino.x + 1,
-          })
-        ) {
-          board.activeTetromino.x += 1;
-        }
-      } else if (e.key === 'ArrowUp') {
-        console.log('Up (TODO: Implement)');
-      } else if (e.key === 'ArrowDown') {
-        console.log('Down (TODO: Implement)');
-      }
+    if (board.gameOver || !board.activeTetromino) {
+      return;
     }
+
+    if (e.code === 'ArrowLeft') {
+      if (
+        !isTetrominoColliding(board, {
+          ...board.activeTetromino,
+          x: board.activeTetromino.x - 1,
+        })
+      ) {
+        board.activeTetromino.x -= 1;
+      }
+    } else if (e.code === 'ArrowRight') {
+      if (
+        !isTetrominoColliding(board, {
+          ...board.activeTetromino,
+          x: board.activeTetromino.x + 1,
+        })
+      ) {
+        board.activeTetromino.x += 1;
+      }
+    } else if (e.code === 'ArrowUp') {
+      let nextDir: TetrominoDirection = 'north';
+      // prettier-ignore
+      switch (board.activeTetromino.direction) {
+        case 'north': nextDir = 'east'; break;
+        case 'east': nextDir = 'south'; break;
+        case 'south': nextDir = 'west'; break;
+        case 'west': nextDir = 'north'; break;
+      }
+
+      if (
+        !isTetrominoColliding(board, {
+          ...board.activeTetromino,
+          direction: nextDir,
+        })
+      ) {
+        board.activeTetromino.direction = nextDir;
+      }
+    } else if (e.code === 'ArrowDown') {
+      if (
+        !isTetrominoColliding(board, {
+          ...board.activeTetromino,
+          y: board.activeTetromino.y - 1,
+        })
+      ) {
+        board.activeTetromino.y -= 1;
+      }
+    } else if (e.code === 'Space') {
+      board.state.push(
+        ...getTetrominoCells(dropTetromino(board, board.activeTetromino)),
+      );
+      board.activeTetromino = undefined;
+      const clearedRows = clearFullRows(board);
+      board.linesCleared += clearedRows;
+      board.score += getScoreForClearedRows(clearedRows);
+      updateScoreUI();
+    }
+
+    drawBoard(ctx, board);
   };
+
+  updateScoreUI();
 
   document.removeEventListener('keydown', onInput);
   document.addEventListener('keydown', onInput);
 
-  window.clearInterval(gameInterval);
-  gameInterval = window.setInterval(gameTick, gameSpeed);
+  window.clearInterval(gameIntervalId);
+  gameIntervalId = window.setInterval(gameTick, gameSpeed);
+
+  window.clearInterval(timerIntervalId);
+  timerIntervalId = window.setInterval(() => {
+    timeTxt.innerHTML = moment(moment().diff(gameStartTime)).format('mm:ss');
+  }, 1000);
 };
 
 export const gameInit = (

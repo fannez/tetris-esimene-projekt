@@ -16,7 +16,7 @@ export interface TetrominoInstance extends Tetromino, Vec2 {
 /* All Tetrominos should default to the north direction */
 
 export const OTetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 0.5, y: 0.5 },
   direction: 'north',
   pieces: [
     { x: 0, y: 0 },
@@ -38,7 +38,7 @@ export const ITetromino: Tetromino = {
 } as const;
 
 export const TTetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 1, y: 1 },
   direction: 'north',
   pieces: [
     { x: 0, y: 1 },
@@ -49,7 +49,7 @@ export const TTetromino: Tetromino = {
 } as const;
 
 export const LTetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 1, y: 1 },
   direction: 'north',
   pieces: [
     { x: 0, y: 1 },
@@ -60,7 +60,7 @@ export const LTetromino: Tetromino = {
 } as const;
 
 export const JTetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 1, y: 1 },
   direction: 'north',
   pieces: [
     { x: 0, y: 1 },
@@ -71,7 +71,7 @@ export const JTetromino: Tetromino = {
 } as const;
 
 export const STetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 1, y: 1 },
   direction: 'north',
   pieces: [
     { x: 0, y: 1 },
@@ -82,7 +82,7 @@ export const STetromino: Tetromino = {
 } as const;
 
 export const ZTetromino: Tetromino = {
-  origin: { x: 1.5, y: 0.5 },
+  origin: { x: 1, y: 1 },
   direction: 'north',
   pieces: [
     { x: 0, y: 0 },
